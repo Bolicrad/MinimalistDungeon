@@ -40,33 +40,78 @@ public class Game : MonoBehaviour {
 	    StartGame();
     }
 
-    public void StartGame()
+    private void StartGame()
     {
-	    int startCount = Random.Range(0, _floor.childCount / 3);
-	    var playerInstance = Instantiate(player, _floor.GetChild(startCount).position, quaternion.identity);
-	    _player = playerInstance.transform;
-	    _player.parent = _dungeon;
-	    vCam.Follow = _player;
-
-	    int endCount = Random.Range(0, _floor.childCount);
-	    var endPointInstance = Instantiate(endPoint, _floor.GetChild(endCount).position, quaternion.identity);
-	    _triforceSpriteRenderer = endPointInstance.GetComponent<SpriteRenderer>();
-	    _end = endPointInstance.transform;
-	    _end.parent = _dungeon;
-	    
-	    for (var i = 0; i < 3; i++)
+	    foreach (var room in Map.Instance.Rooms)
 	    {
-		    int pieceCount = Random.Range(_floor.childCount * i / 3, _floor.childCount * (i + 1) / 3);
-		    var pieceInstance = Instantiate(piece, _floor.GetChild(pieceCount).position, quaternion.identity);
-		    pieceInstance.transform.parent = _dungeon;
+		    Vector3 pos = new Vector3(room.GetCenter().x * FloorLength, room.GetCenter().y * FloorLength);
+		    switch (room.Type)
+		    {
+			    case RoomType.Spawn:
+			    {
+				    var playerInstance = Instantiate(player, pos, quaternion.identity);
+				    _player = playerInstance.transform;
+				    _player.parent = _dungeon;
+				    vCam.Follow = _player;
+				    break;
+			    }
+			    case RoomType.EndPoint:
+			    {
+				    var endPointInstance = Instantiate(endPoint, pos, quaternion.identity);
+				    _end = endPointInstance.transform;
+				    _end.parent = _dungeon;
+				    _triforceSpriteRenderer = endPointInstance.GetComponent<SpriteRenderer>();
+				    break;
+			    }
+			    case RoomType.Piece:
+			    {
+				    var pieceInstance = Instantiate(piece, pos, quaternion.identity);
+				    pieceInstance.transform.parent = _dungeon;
+				    break;
+			    }
+			    default:
+			    {
+				    //Generate Nothing
+				    break;
+			    }
+		    }
 	    }
+
     }
-    public void GenerateDungeon()
+
+    private void GenerateDungeon()
     {
 	    //Random.InitState(randomSeed);
 	    Map.Instance.Init(roomMaxLength, roomMaxWidth, roomMinLength, roomMinWidth, mapMaxLength, mapMaxWidth, roomNum,minCorridorLen,maxCorridorLen);//初始化参数
 	    Map.Instance.MakeDungeon(step);
-	    Create(Map.Instance.GetMap());
+	    Create(Map.Instance.TileMap);
+	    
+	    //Init Rooms
+	    int length = Map.Instance.Rooms.Count;
+	    
+	    //Set Spawn Room
+	    var spawnPos = Random.Range(0, length);
+	    Map.Instance.Rooms[spawnPos].Type = RoomType.Spawn;
+	    
+	    //Set End Room
+	    var endPos = Random.Range(0, length);
+	    while (endPos == spawnPos)
+	    {
+		    endPos = Random.Range(0, length);
+	    }
+	    Map.Instance.Rooms[endPos].Type = RoomType.EndPoint;
+	    
+	    //Set Piece Rooms
+	    for (var i = 0; i < 3; i++)
+	    {
+		    int piecePos = Random.Range(0, length);
+		    while (Map.Instance.Rooms[piecePos].Type!=RoomType.None)
+		    {
+			    piecePos = Random.Range(0, length);
+		    }
+		    Map.Instance.Rooms[piecePos].Type = RoomType.Piece;
+	    }
+
     }
     private void LocalInstantiate(GameObject prefab, Vector3 pos)
     {
@@ -94,8 +139,7 @@ public class Game : MonoBehaviour {
 	    }
     }
 
-
-    public void Create(CustomTile[,]map){
+    private void Create(CustomTile[,]map){
 		for (var i = 0; i < map.GetLength (0); i++)
 			for (var j = 0; j < map.GetLength (1); j++) {
 				switch (map [i, j]) { 

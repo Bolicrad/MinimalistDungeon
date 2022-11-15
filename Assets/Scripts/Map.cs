@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 public enum CustomTile
@@ -9,15 +10,41 @@ public enum CustomTile
 	WallA,
 	WallD,
 	CorridorAD,
-	CorridorWS,
-	Door,
-	UpStairs,
-	DownStairs
+	CorridorWS
+}
+
+public enum RoomType
+{
+	None,
+	Spawn,
+	EndPoint,
+	Piece
+}
+
+public class Room
+{
+	public RoomType Type;
+	private readonly Vector2Int _start;
+	private readonly Vector2Int _end;
+
+	public Room(int xStart, int yStart, int xEnd, int yEnd)
+	{
+		Type = RoomType.None;
+		_start = new Vector2Int(xStart, yStart);
+		_end = new Vector2Int(xEnd, yEnd);
+	}
+
+	public Vector2Int GetCenter()
+	{
+		return (_start + _end) / 2;
+	}
 }
 
 public class Map
 {
-	private CustomTile[,] _fullMap;
+	public CustomTile[,] TileMap { get; private set; }
+	public List<Room> Rooms { get; private set; }
+
 	private int 
 		_roomMaxLength, 
 		_roomMaxWidth, 
@@ -38,7 +65,8 @@ public class Map
 	
 	public void Init (int roomMaxLength,int roomMaxWidth,int roomMinLength,int roomMinWidth,int mapMaxLength,int mapMaxWidth,int roomNum,int minCorridorLen,int maxCorridorLen)
 	{
-		_fullMap = new CustomTile[mapMaxWidth, mapMaxLength];
+		TileMap = new CustomTile[mapMaxWidth, mapMaxLength];
+		Rooms = new List<Room>();
 		_first = true;
 		_roomMaxLength = roomMaxLength; 
 		_roomMaxWidth = roomMaxWidth; 
@@ -65,7 +93,7 @@ public class Map
 	{
 		for (var i = xStart; i <= xEnd; i++)
 			for (var j = yStart; j <= yEnd; j++) {
-				_fullMap [i, j] = cellType;
+				TileMap [i, j] = cellType;
 			}
 	}
 	
@@ -73,22 +101,22 @@ public class Map
 	{
 		for (var i = xStart; i <= xEnd; i++)
 			for (var j = yStart; j <= yEnd; j++)
-				if (_fullMap [i, j] != CustomTile.Default)
+				if (TileMap [i, j] != CustomTile.Default)
 					return false;
 		return true;
 	}
 	
-	private void CreateRoom(int xStart, int yStart, int xEnd, int yEnd){
-		for (var i = xStart + 1; i < xEnd ; i++)
-			for (var j = yStart + 1; j < yEnd; j++)
-				_fullMap [i, j] = CustomTile.Floor;
+	private void CreateRoom(int xStart, int yStart, int xEnd, int yEnd)
+	{
+		Rooms.Add(new Room(xStart + 1, yStart + 1, xEnd - 1, yEnd - 1));
+		SetCells(xStart+1,yStart+1,xEnd-1,yEnd-1,CustomTile.Floor);
 		for (var i = xStart + 1; i < xEnd ; i++) {
-			_fullMap [i, yStart] = CustomTile.WallA;
-			_fullMap [i, yEnd] = CustomTile.WallD;
+			TileMap [i, yStart] = CustomTile.WallA;
+			TileMap [i, yEnd] = CustomTile.WallD;
 		}
 		for (var j = yStart + 1; j < yEnd; j++) {
-			_fullMap [xStart, j] = CustomTile.WallS;
-			_fullMap [xEnd, j] = CustomTile.WallW;
+			TileMap [xStart, j] = CustomTile.WallS;
+			TileMap [xEnd, j] = CustomTile.WallW;
 		}
 	}
 
@@ -97,9 +125,9 @@ public class Map
 		{
 			for (var i = xStart; i <= xEnd; i++)
 			{
-				_fullMap [i, yStart] = t;
-				if (_fullMap[i, yStart + 1] != CustomTile.Floor) _fullMap[i, yStart + 1] = CustomTile.WallD;
-				if (_fullMap[i, yStart - 1] != CustomTile.Floor) _fullMap[i, yStart - 1] = CustomTile.WallA;
+				TileMap [i, yStart] = t;
+				if (TileMap[i, yStart + 1] != CustomTile.Floor) TileMap[i, yStart + 1] = CustomTile.WallD;
+				if (TileMap[i, yStart - 1] != CustomTile.Floor) TileMap[i, yStart - 1] = CustomTile.WallA;
 			}
 		}
 
@@ -107,9 +135,9 @@ public class Map
 		{
 			for (var j = yStart; j <= yEnd; j++)
 			{
-				_fullMap [xStart, j] = t;
-				if (_fullMap[xStart + 1, j] != CustomTile.Floor) _fullMap[xStart + 1, j] = CustomTile.WallW;
-				if (_fullMap[xStart - 1, j] != CustomTile.Floor) _fullMap[xStart - 1, j] = CustomTile.WallS;
+				TileMap [xStart, j] = t;
+				if (TileMap[xStart + 1, j] != CustomTile.Floor) TileMap[xStart + 1, j] = CustomTile.WallW;
+				if (TileMap[xStart - 1, j] != CustomTile.Floor) TileMap[xStart - 1, j] = CustomTile.WallS;
 			}
 		}
 	}
@@ -132,13 +160,13 @@ public class Map
 			return true;
 		}
 
-		if ((_fullMap[x, y] != CustomTile.WallA) && (_fullMap[x, y] != CustomTile.WallW) &&
-		    (_fullMap[x, y] != CustomTile.WallS) && (_fullMap[x, y] != CustomTile.WallD)) return false;
+		if ((TileMap[x, y] != CustomTile.WallA) && (TileMap[x, y] != CustomTile.WallW) &&
+		    (TileMap[x, y] != CustomTile.WallS) && (TileMap[x, y] != CustomTile.WallD)) return false;
 		var corridorLength = Random.Range (_minCorridorLen - 2, _maxCorridorLen - 1);
 		int cXStart = -1, cXEnd = -1, cYStart = -1, cYEnd = -1;
 		var away = Random.Range (1, length - 1);
 		var type=CustomTile.Default;
-		switch (_fullMap [x, y]) {
+		switch (TileMap [x, y]) {
 			case(CustomTile.WallA):
 				xStart = x - away;
 				xEnd = x + width;
@@ -204,10 +232,7 @@ public class Map
 			}
 		}
 		if (num<_roomNum){
-			Debug.Log ("Cannot Generate room. Please Enlarge the Step Num");
+			Debug.Log ("Cannot generate enough room. Please Enlarge the Step Num");
 		}
-	}
-	public CustomTile[,] GetMap(){
-		return(_fullMap);
 	}
 }
