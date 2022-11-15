@@ -27,5 +27,12 @@ public class PlayerController : MonoBehaviour
             Debug.Log("Touched End Point, Teleporting to next room");
             SceneManager.LoadScene(0);
         }
+
+        if (col.CompareTag("Piece"))
+        {
+            Debug.Log("Touched Piece");
+            Destroy(col.gameObject);
+            Camera.main!.SendMessage("AddPiece");
+        }
     }
 }

@@ -1,6 +1,7 @@
 using Cinemachine;
 using Unity.Mathematics;
 using UnityEngine;
+using UnityEngine.UI;
 using Random = UnityEngine.Random;
 
 public class Game : MonoBehaviour {
@@ -9,6 +10,9 @@ public class Game : MonoBehaviour {
     private Transform _wall;
     private Transform _spawn;
     private Transform _end;
+    private int _pieceNum;
+    public Image triforceFrame;
+    public Sprite[] triforce;
     public int randomSeed=1;
     public int 
         roomMaxLength=5, 
@@ -24,7 +28,7 @@ public class Game : MonoBehaviour {
 
     
     private const float FloorLength = 1.0f;
-    public GameObject endPoint,player,floor, wallS, wallW, wallA, wallD;
+    public GameObject endPoint,piece,player,floor,corridor, wallS, wallW, wallA, wallD;
     public CinemachineVirtualCamera vCam;
     
     void Start () {
@@ -37,15 +41,18 @@ public class Game : MonoBehaviour {
 
     public void StartGame()
     {
-	    _spawn = _floor.GetChild(0);
+	    int startCount = Random.Range(0, _floor.childCount / 3);
+	    _spawn = _floor.GetChild(startCount);
 	    var playerInstance = Instantiate(player, _spawn.position, quaternion.identity);
 	    playerInstance.transform.parent = _dungeon;
 	    vCam.Follow = playerInstance.transform;
 
-	    var endCount = Random.Range((int)_floor.childCount / 2, _floor.childCount);
-	    _end = _floor.GetChild(endCount);
-	    var endPointInstance = Instantiate(endPoint, _end.position, quaternion.identity);
-	    endPointInstance.transform.parent = _dungeon;
+	    for (var i = 0; i < 3; i++)
+	    {
+		    int pieceCount = Random.Range(_floor.childCount * i / 3, _floor.childCount * (i + 1) / 3);
+		    var pieceInstance = Instantiate(piece, _floor.GetChild(pieceCount).position, quaternion.identity);
+		    pieceInstance.transform.parent = _dungeon;
+	    }
     }
     public void GenerateDungeon()
     {
@@ -55,19 +62,42 @@ public class Game : MonoBehaviour {
 	    Create(Map.Instance.GetMap());
     }
     private void LocalInstantiate(GameObject prefab, Vector3 pos)
-	{
-		GameObject g = Instantiate(prefab, pos, Quaternion.identity);
-		if(prefab == floor) g.transform.SetParent(_floor);
-		else g.transform.SetParent(_wall);
-	}
+    {
+	    GameObject g = Instantiate(prefab, pos, Quaternion.identity);
+	    g.transform.SetParent(prefab == floor ? _floor : _wall);
+    }
+
+    private void GenerateEndpoint()
+    {
+	    Debug.Log("Generated End Point");
+	    int endCount = Random.Range(0, _floor.childCount * 2 / 3);
+	    _end = _floor.GetChild(endCount);
+	    var endPointInstance = Instantiate(endPoint, _end.position, quaternion.identity);
+	    endPointInstance.transform.parent = _dungeon;
+    }
+
+    public void AddPiece()
+    {
+	    if (_pieceNum < 3)
+	    {
+		    _pieceNum++;
+		    triforceFrame.sprite = triforce[_pieceNum];
+		    if (_pieceNum == 3)
+		    {
+			    GenerateEndpoint();
+		    }
+	    }
+    }
 
 
-	public void Create(CustomTile[,]map){
+    public void Create(CustomTile[,]map){
 		for (var i = 0; i < map.GetLength (0); i++)
 			for (var j = 0; j < map.GetLength (1); j++) {
 				switch (map [i, j]) { 
 					case (CustomTile.CorridorAD):
 					case (CustomTile.CorridorWS):
+						LocalInstantiate(corridor,new Vector3(i*FloorLength,j*FloorLength));
+						break;
 					case (CustomTile.Floor): 
 						LocalInstantiate (floor,new Vector3(i*FloorLength,j*FloorLength)); 
 						break; 

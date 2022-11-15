@@ -31,10 +31,7 @@ public class Map
 	private bool _first;
 	private static Map _instance;
 
-	private Map ()
-	{
-	}
-	
+	private Map () { }
 	public static Map Instance {
 		get { return _instance ??= new Map(); }
 	}
@@ -93,7 +90,6 @@ public class Map
 			_fullMap [xStart, j] = CustomTile.WallS;
 			_fullMap [xEnd, j] = CustomTile.WallW;
 		}
-	
 	}
 
 	private void CreateCorridor(int xStart, int yStart, int xEnd, int yEnd,CustomTile t){
