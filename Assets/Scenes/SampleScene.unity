@@ -305,7 +305,7 @@ MonoBehaviour:
   roomMinWidth: 5
   mapMaxLength: 150
   mapMaxWidth: 150
-  roomNum: 10
+  roomNum: 7
   minCorridorLen: 5
   maxCorridorLen: 7
   step: 10000

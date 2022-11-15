@@ -8,10 +8,11 @@ public class Game : MonoBehaviour {
     private Transform _dungeon;
     private Transform _floor;
     private Transform _wall;
-    private Transform _spawn;
+    private Transform _player;
     private Transform _end;
     private int _pieceNum;
     public Image triforceFrame;
+    private SpriteRenderer _triforceSpriteRenderer;
     public Sprite[] triforce;
     public int randomSeed=1;
     public int 
@@ -42,11 +43,17 @@ public class Game : MonoBehaviour {
     public void StartGame()
     {
 	    int startCount = Random.Range(0, _floor.childCount / 3);
-	    _spawn = _floor.GetChild(startCount);
-	    var playerInstance = Instantiate(player, _spawn.position, quaternion.identity);
-	    playerInstance.transform.parent = _dungeon;
-	    vCam.Follow = playerInstance.transform;
+	    var playerInstance = Instantiate(player, _floor.GetChild(startCount).position, quaternion.identity);
+	    _player = playerInstance.transform;
+	    _player.parent = _dungeon;
+	    vCam.Follow = _player;
 
+	    int endCount = Random.Range(0, _floor.childCount);
+	    var endPointInstance = Instantiate(endPoint, _floor.GetChild(endCount).position, quaternion.identity);
+	    _triforceSpriteRenderer = endPointInstance.GetComponent<SpriteRenderer>();
+	    _end = endPointInstance.transform;
+	    _end.parent = _dungeon;
+	    
 	    for (var i = 0; i < 3; i++)
 	    {
 		    int pieceCount = Random.Range(_floor.childCount * i / 3, _floor.childCount * (i + 1) / 3);
@@ -56,7 +63,7 @@ public class Game : MonoBehaviour {
     }
     public void GenerateDungeon()
     {
-	    //UnityEngine.Random.InitState(randomSeed);
+	    //Random.InitState(randomSeed);
 	    Map.Instance.Init(roomMaxLength, roomMaxWidth, roomMinLength, roomMinWidth, mapMaxLength, mapMaxWidth, roomNum,minCorridorLen,maxCorridorLen);//初始化参数
 	    Map.Instance.MakeDungeon(step);
 	    Create(Map.Instance.GetMap());
@@ -67,13 +74,10 @@ public class Game : MonoBehaviour {
 	    g.transform.SetParent(prefab == floor ? _floor : _wall);
     }
 
-    private void GenerateEndpoint()
+    private void EnableEndpoint()
     {
-	    Debug.Log("Generated End Point");
-	    int endCount = Random.Range(0, _floor.childCount * 2 / 3);
-	    _end = _floor.GetChild(endCount);
-	    var endPointInstance = Instantiate(endPoint, _end.position, quaternion.identity);
-	    endPointInstance.transform.parent = _dungeon;
+	    Debug.Log("Enabled End Point");
+	    _end.GetComponent<Collider2D>().enabled = true;
     }
 
     public void AddPiece()
@@ -82,9 +86,10 @@ public class Game : MonoBehaviour {
 	    {
 		    _pieceNum++;
 		    triforceFrame.sprite = triforce[_pieceNum];
+		    _triforceSpriteRenderer.sprite = triforce[_pieceNum];
 		    if (_pieceNum == 3)
 		    {
-			    GenerateEndpoint();
+			    EnableEndpoint();
 		    }
 	    }
     }
